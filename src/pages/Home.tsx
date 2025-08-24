@@ -4,21 +4,45 @@ import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import ContentRow from "@/components/ContentRow";
 import ContentDetailsModal from "@/components/ContentDetailsModal";
-import { categories, featuredContent, Movie, TVShow } from "@/lib/mockData";
+import { Movie, TVShow, moviesAPI, tvShowsAPI, watchlistAPI, isAuthenticated } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [selectedContent, setSelectedContent] = useState<Movie | TVShow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [tvShows, setTVShows] = useState<TVShow[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!isLoggedIn) {
+    if (!isAuthenticated()) {
       navigate("/auth");
+      return;
     }
-  }, [navigate]);
+
+    const fetchContent = async () => {
+      try {
+        const [moviesData, tvShowsData] = await Promise.all([
+          moviesAPI.getMovies(),
+          tvShowsAPI.getTVShows()
+        ]);
+        setMovies(moviesData);
+        setTVShows(tvShowsData);
+      } catch (error) {
+        toast({
+          title: "Error loading content",
+          description: "Failed to fetch movies and TV shows",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [navigate, toast]);
 
   const handlePlay = (content: Movie | TVShow) => {
     toast({
@@ -28,21 +52,18 @@ export default function Home() {
     // In a real app, this would navigate to a video player
   };
 
-  const handleAddToWatchlist = (content: Movie | TVShow) => {
-    const watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    const isAlreadyInList = watchlist.some((item: Movie | TVShow) => item.id === content.id);
-    
-    if (!isAlreadyInList) {
-      const updatedWatchlist = [...watchlist, content];
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+  const handleAddToWatchlist = async (content: Movie | TVShow) => {
+    try {
+      await watchlistAPI.addToWatchlist(content.id);
       toast({
         title: "Added to My List",
         description: `${content.title} has been added to your watchlist.`,
       });
-    } else {
+    } catch (error) {
       toast({
-        title: "Already in List",
-        description: `${content.title} is already in your watchlist.`,
+        title: "Error",
+        description: "Failed to add to watchlist. It may already be in your list.",
+        variant: "destructive",
       });
     }
   };
@@ -57,26 +78,76 @@ export default function Home() {
     setSelectedContent(null);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-foreground">Loading content...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Create featured content from the first movie or TV show
+  const featuredContent = movies.length > 0 ? movies[0] : tvShows.length > 0 ? tvShows[0] : null;
+
+  // Organize content into categories
+  const categories = [
+    {
+      id: "trending",
+      name: "Trending Now",
+      content: [...movies.slice(0, 10), ...tvShows.slice(0, 10)],
+    },
+    {
+      id: "movies",
+      name: "Popular Movies",
+      content: movies,
+    },
+    {
+      id: "tvshows", 
+      name: "TV Shows",
+      content: tvShows,
+    },
+    {
+      id: "action",
+      name: "Action & Adventure",
+      content: [...movies, ...tvShows].filter(item => 
+        item.genre.toLowerCase().includes('action') || 
+        item.genre.toLowerCase().includes('adventure')
+      ),
+    },
+    {
+      id: "comedy",
+      name: "Comedy",
+      content: [...movies, ...tvShows].filter(item => 
+        item.genre.toLowerCase().includes('comedy')
+      ),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main>
-        <HeroSection
-          featuredContent={featuredContent}
-          onPlay={handlePlay}
-          onShowDetails={handleShowDetails}
-          onAddToWatchlist={handleAddToWatchlist}
-        />
+        {featuredContent && (
+          <HeroSection
+            featuredContent={featuredContent}
+            onPlay={handlePlay}
+            onShowDetails={handleShowDetails}
+            onAddToWatchlist={handleAddToWatchlist}
+          />
+        )}
 
         <div className="relative z-10 -mt-32 pb-8">
           {categories.map((category) => {
-            const allContent = [...category.movies, ...(category.tvShows || [])];
+            if (category.content.length === 0) return null;
             return (
               <ContentRow
                 key={category.id}
                 title={category.name}
-                content={allContent}
+                content={category.content}
                 onPlay={handlePlay}
                 onAddToWatchlist={handleAddToWatchlist}
                 onShowDetails={handleShowDetails}

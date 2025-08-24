@@ -5,7 +5,7 @@ import ContentCard from "@/components/ContentCard";
 import ContentDetailsModal from "@/components/ContentDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { Movie, TVShow } from "@/lib/mockData";
+import { Movie, TVShow, watchlistAPI, isAuthenticated } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Watchlist() {
@@ -16,16 +16,26 @@ export default function Watchlist() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (!isLoggedIn) {
+    if (!isAuthenticated()) {
       navigate("/auth");
       return;
     }
 
-    // Load watchlist from localStorage
-    const storedWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    setWatchlist(storedWatchlist);
-  }, [navigate]);
+    const fetchWatchlist = async () => {
+      try {
+        const watchlistData = await watchlistAPI.getWatchlist();
+        setWatchlist(watchlistData);
+      } catch (error) {
+        toast({
+          title: "Error loading watchlist",
+          description: "Failed to fetch your watchlist",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchWatchlist();
+  }, [navigate, toast]);
 
   const handlePlay = (content: Movie | TVShow) => {
     toast({
@@ -34,14 +44,40 @@ export default function Watchlist() {
     });
   };
 
-  const handleRemoveFromWatchlist = (content: Movie | TVShow) => {
-    const updatedWatchlist = watchlist.filter(item => item.id !== content.id);
-    setWatchlist(updatedWatchlist);
-    localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-    toast({
-      title: "Removed from List",
-      description: `${content.title} has been removed from your watchlist.`,
-    });
+  const handleRemoveFromWatchlist = async (content: Movie | TVShow) => {
+    try {
+      await watchlistAPI.removeFromWatchlist(content.id);
+      const updatedWatchlist = watchlist.filter(item => item.id !== content.id);
+      setWatchlist(updatedWatchlist);
+      toast({
+        title: "Removed from List",
+        description: `${content.title} has been removed from your watchlist.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove from watchlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearWatchlist = async () => {
+    try {
+      // Remove all items from backend
+      await Promise.all(watchlist.map(item => watchlistAPI.removeFromWatchlist(item.id)));
+      setWatchlist([]);
+      toast({
+        title: "Watchlist cleared",
+        description: "All items have been removed from your watchlist.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear watchlist",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShowDetails = (content: Movie | TVShow) => {
@@ -52,15 +88,6 @@ export default function Watchlist() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedContent(null);
-  };
-
-  const clearWatchlist = () => {
-    setWatchlist([]);
-    localStorage.setItem("watchlist", "[]");
-    toast({
-      title: "Watchlist cleared",
-      description: "All items have been removed from your watchlist.",
-    });
   };
 
   return (

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ContentCard from "./ContentCard";
-import { Movie, TVShow } from "@/lib/mockData";
+import { Movie, TVShow } from "@/lib/api";
 
 interface ContentRowProps {
   title: string;

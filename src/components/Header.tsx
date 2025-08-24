@@ -9,19 +9,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { authAPI, isAuthenticated } from "@/lib/api";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const loggedIn = isAuthenticated();
 
   const handleLogout = () => {
+    authAPI.logout();
     localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("user");
     navigate("/auth");
   };
 
-  if (!isLoggedIn) return null;
+  if (!loggedIn) return null;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">

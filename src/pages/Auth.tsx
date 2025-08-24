@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { authAPI, storeAuthData } from "@/lib/api";
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,24 +16,37 @@ export default function Auth() {
   const handleAuth = async (type: 'login' | 'signup', formData: FormData) => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock successful authentication
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("user", JSON.stringify({
-      id: "1",
-      email: formData.get('email'),
-      name: formData.get('name') || 'User'
-    }));
-    
-    toast({
-      title: type === 'login' ? "Welcome back!" : "Account created!",
-      description: `You've been successfully ${type === 'login' ? 'logged in' : 'signed up'}.`,
-    });
-    
-    setIsLoading(false);
-    navigate("/");
+    try {
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+      const name = formData.get('name') as string;
+
+      let authResponse;
+      if (type === 'login') {
+        authResponse = await authAPI.login({ email, password });
+      } else {
+        authResponse = await authAPI.signup({ email, password, name });
+      }
+
+      // Store auth data
+      storeAuthData(authResponse);
+      localStorage.setItem("isLoggedIn", "true");
+      
+      toast({
+        title: type === 'login' ? "Welcome back!" : "Account created!",
+        description: `You've been successfully ${type === 'login' ? 'logged in' : 'signed up'}.`,
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Authentication failed",
+        description: error.response?.data?.message || "An error occurred during authentication",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = (type: 'login' | 'signup') => (e: React.FormEvent<HTMLFormElement>) => {

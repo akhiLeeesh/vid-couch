@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Play, Plus, X, Star } from "lucide-react";
-import { Movie, TVShow } from "@/lib/mockData";
+import { Movie, TVShow } from "@/lib/api";
 
 interface ContentDetailsModalProps {
   content: Movie | TVShow | null;
@@ -135,16 +135,18 @@ export default function ContentDetailsModal({
             </div>
 
             {/* Video embed */}
-            <div className="aspect-video rounded-lg overflow-hidden">
-              <iframe
-                src={content.trailerUrl}
-                title={`${content.title} Trailer`}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+            {content.trailerUrl && (
+              <div className="aspect-video rounded-lg overflow-hidden">
+                <iframe
+                  src={content.trailerUrl}
+                  title={`${content.title} Trailer`}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Plus, Info } from "lucide-react";
-import { Movie, TVShow } from "@/lib/mockData";
+import { Movie, TVShow } from "@/lib/api";
 
 interface ContentCardProps {
   content: Movie | TVShow;

@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Play, Info, Plus } from "lucide-react";
-import { Movie } from "@/lib/mockData";
+import { Movie, TVShow } from "@/lib/api";
 import heroBanner from "@/assets/hero-banner.jpg";
 
 interface HeroSectionProps {
-  featuredContent: Movie;
-  onPlay: (content: Movie) => void;
-  onShowDetails: (content: Movie) => void;
-  onAddToWatchlist: (content: Movie) => void;
+  featuredContent: Movie | TVShow;
+  onPlay: (content: Movie | TVShow) => void;
+  onShowDetails: (content: Movie | TVShow) => void;
+  onAddToWatchlist: (content: Movie | TVShow) => void;
 }
 
 export default function HeroSection({ 
